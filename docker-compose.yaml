@@ -1,0 +1,203 @@
+# =============================================================================
+# Docker Compose — Twitter Data Lakehouse
+# Optimized for AWS EC2 t3.micro (1GB RAM + 4GB Swap, Ubuntu 22.04)
+# =============================================================================
+
+x-common:
+  &common
+  image: lakehouse-airflow
+  build:
+    context: .
+    dockerfile: airflow.Dockerfile
+  user: "${AIRFLOW_UID:-50000}:0"
+  env_file:
+    - .env
+  volumes:
+    - ./app/dags:/opt/airflow/dags
+    - ./app/logs:/opt/airflow/logs
+  networks:
+    - lakehouse
+
+x-depends-on:
+  &depends-on
+  depends_on:
+    postgres:
+      condition: service_healthy
+    airflow-init:
+      condition: service_completed_successfully
+
+networks:
+  lakehouse:
+    driver: bridge
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible Object Storage
+  # Role: Cloud Storage (Vinh, Tín)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2024-01-05T22-17-24Z
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9090:9090'
+    volumes:
+      - minio-data:/data
+    env_file:
+      - .env
+    command: server --console-address ":9090" /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    mem_limit: 256m
+    memswap_limit: 512m
+    networks:
+      - lakehouse
+
+  # ---------------------------------------------------------------------------
+  # Apache Drill — Distributed SQL Query Engine
+  # Role: Cloud Compute (Hoàng, Triệu)
+  # ---------------------------------------------------------------------------
+  drill:
+    image: apache/drill:1.21.1
+    restart: unless-stopped
+    ports:
+      - '8047:8047'
+      - '31010:31010'
+    volumes:
+      - ./conf/drill/core-site.xml:/opt/drill/conf/core-site.xml
+      - ./conf/drill/storage-plugins-override.conf:/opt/drill/conf/storage-plugins-override.conf
+    environment:
+      # JVM tuning for t3.micro — reduce from default 4GB+8GB to fit 1GB RAM
+      - DRILL_HEAP=192m
+      - DRILL_MAX_DIRECT_MEMORY=256m
+      - DRILLBIT_MAX_PROC_MEM=512m
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    mem_limit: 512m
+    memswap_limit: 768m
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - lakehouse
+
+  # ---------------------------------------------------------------------------
+  # Apache Superset — BI & Visualization
+  # Role: Cloud BI & Visualization (Hoàng, Triệu)
+  # ---------------------------------------------------------------------------
+  superset:
+    build:
+      context: .
+      dockerfile: superset_drill.Dockerfile
+    restart: unless-stopped
+    ports:
+      - '8088:8088'
+    env_file:
+      - .env
+    volumes:
+      - superset-data:/app/superset_home
+    command: >
+      bash -c "
+      superset db upgrade &&
+      (superset fab create-admin
+        --username $${SUPERSET_USERNAME:-admin}
+        --firstname Admin
+        --lastname Admin
+        --email admin@admin.com
+        --password $${SUPERSET_PASSWORD:-admin} 2>/dev/null || true) &&
+      superset init &&
+      gunicorn
+        --bind 0.0.0.0:8088
+        --workers 1
+        --threads 2
+        --timeout 120
+        --limit-request-line 0
+        'superset.app:create_app()'
+      "
+    mem_limit: 384m
+    memswap_limit: 768m
+    depends_on:
+      drill:
+        condition: service_started
+    networks:
+      - lakehouse
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Airflow Metadata Database
+  # Role: Cloud Infra & DevOps (Vinh, Tín)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    mem_limit: 128m
+    memswap_limit: 256m
+    networks:
+      - lakehouse
+
+  # ---------------------------------------------------------------------------
+  # Airflow Scheduler
+  # Role: Cloud Infra & DevOps (Vinh, Tín)
+  # ---------------------------------------------------------------------------
+  scheduler:
+    <<: [*common, *depends-on]
+    container_name: airflow-scheduler
+    command: scheduler
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 512m
+
+  # ---------------------------------------------------------------------------
+  # Airflow Webserver
+  # Role: Cloud Infra & DevOps (Vinh, Tín)
+  # ---------------------------------------------------------------------------
+  webserver:
+    <<: [*common, *depends-on]
+    container_name: airflow-webserver
+    command: webserver
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    mem_limit: 256m
+    memswap_limit: 512m
+
+  # ---------------------------------------------------------------------------
+  # Airflow Init (runs once on first start)
+  # ---------------------------------------------------------------------------
+  airflow-init:
+    <<: *common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /sources/logs /sources/dags
+        chown -R "${AIRFLOW_UID:-50000}:0" /sources/{logs,dags}
+        exec /entrypoint airflow version
+
+volumes:
+  minio-data:
+  postgres-data:
+  superset-data:
