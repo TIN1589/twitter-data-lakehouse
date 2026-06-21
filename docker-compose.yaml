@@ -1,6 +1,18 @@
 # =============================================================================
 # Docker Compose — Twitter Data Lakehouse
-# Optimized for AWS EC2 t3.micro (1GB RAM + 4GB Swap, Ubuntu 22.04)
+# OPTIMIZED for AWS EC2 t3.micro (1GB RAM + 4GB Swap, Ubuntu 22.04)
+#
+# Memory Budget (1024MB physical + 4096MB swap = 5120MB total):
+#   OS + Docker daemon:  ~200MB (reserved)
+#   MinIO:                200MB (limit) + 256MB swap
+#   Drill:                384MB (limit) + 384MB swap  ← heaviest (JVM)
+#   Superset:             256MB (limit) + 384MB swap
+#   Postgres:             100MB (limit) + 128MB swap
+#   Airflow Scheduler:    200MB (limit) + 300MB swap
+#   Airflow Webserver:    200MB (limit) + 300MB swap
+#   ─────────────────────────────────────────────
+#   Total physical:      ~1340MB (uses swap for burst)
+#   Total swap:          ~1752MB (within 4GB swap budget)
 # =============================================================================
 
 x-common:
@@ -46,6 +58,10 @@ services:
       - minio-data:/data
     env_file:
       - .env
+    environment:
+      # >>> MEM: Giới hạn Go GC để MinIO không chiếm quá nhiều RAM
+      - GOGC=20
+      - GOMEMLIMIT=180MiB
     command: server --console-address ":9090" /data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
@@ -53,8 +69,16 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
-    mem_limit: 256m
-    memswap_limit: 512m
+    # >>> MEM: deploy.resources.limits (Docker Compose V3 / Swarm syntax)
+    deploy:
+      resources:
+        limits:
+          memory: 200m
+        reservations:
+          memory: 100m
+    # >>> MEM: Fallback limits cho docker-compose V2 (non-Swarm)
+    mem_limit: 200m
+    memswap_limit: 456m
     networks:
       - lakehouse
 
@@ -72,15 +96,26 @@ services:
       - ./conf/drill/core-site.xml:/opt/drill/conf/core-site.xml
       - ./conf/drill/storage-plugins-override.conf:/opt/drill/conf/storage-plugins-override.conf
     environment:
-      # JVM tuning for t3.micro — reduce from default 4GB+8GB to fit 1GB RAM
+      # >>> MEM: JVM tuning cực kỳ aggressive cho t3.micro
+      # DRILL_HEAP: Heap size cho Drill query engine (giảm từ default 4GB)
       - DRILL_HEAP=192m
-      - DRILL_MAX_DIRECT_MEMORY=256m
-      - DRILLBIT_MAX_PROC_MEM=512m
+      # DRILL_MAX_DIRECT_MEMORY: Off-heap buffer cho I/O (giảm từ default 8GB)
+      - DRILL_MAX_DIRECT_MEMORY=192m
+      # DRILLBIT_MAX_PROC_MEM: Tổng RAM tối đa cho toàn bộ JVM process
+      - DRILLBIT_MAX_PROC_MEM=400m
+      # >>> MEM: JVM flags bổ sung để giảm memory footprint
+      - DRILL_JAVA_OPTS=-XX:MaxMetaspaceSize=64m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC -XX:+UseCompressedOops -XX:+UseCompressedClassPointers
     env_file:
       - .env
     stdin_open: true
     tty: true
-    mem_limit: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+        reservations:
+          memory: 200m
+    mem_limit: 384m
     memswap_limit: 768m
     depends_on:
       minio:
@@ -103,16 +138,25 @@ services:
       - .env
     volumes:
       - superset-data:/app/superset_home
+    environment:
+      # >>> MEM: Superset metadata cache nhỏ hơn
+      - SUPERSET_WEBSERVER_TIMEOUT=120
     command: >
       bash -c "
       export SUPERSET_SECRET_KEY=$${SUPERSET_SECRET_KEY:-thisisasecretkeythatcanbeanystring123456789} &&
       superset db upgrade &&
       superset fab create-admin --username admin --firstname Admin --lastname Admin --email admin@admin.com --password admin || true &&
       superset init &&
-      gunicorn --bind 0.0.0.0:8088 --workers 1 --threads 2 --timeout 120 --limit-request-line 0 'superset.app:create_app()'
+      gunicorn --bind 0.0.0.0:8088 --workers 1 --threads 2 --timeout 120 --limit-request-line 0 --max-requests 50 --max-requests-jitter 10 'superset.app:create_app()'
       "
-    mem_limit: 384m
-    memswap_limit: 768m
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 128m
+    mem_limit: 256m
+    memswap_limit: 640m
     depends_on:
       drill:
         condition: service_started
@@ -135,10 +179,31 @@ services:
       retries: 5
     env_file:
       - .env
+    environment:
+      # >>> MEM: Postgres tuning cho low-memory environment
+      - POSTGRES_SHARED_BUFFERS=32MB
+      - POSTGRES_WORK_MEM=2MB
+      - POSTGRES_MAINTENANCE_WORK_MEM=16MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=64MB
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c work_mem=2MB
+      -c maintenance_work_mem=16MB
+      -c effective_cache_size=64MB
+      -c max_connections=20
+      -c wal_buffers=1MB
+      -c checkpoint_completion_target=0.9
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    mem_limit: 128m
-    memswap_limit: 256m
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+        reservations:
+          memory: 50m
+    mem_limit: 100m
+    memswap_limit: 228m
     networks:
       - lakehouse
 
@@ -151,8 +216,14 @@ services:
     container_name: airflow-scheduler
     command: scheduler
     restart: unless-stopped
-    mem_limit: 256m
-    memswap_limit: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 200m
+        reservations:
+          memory: 100m
+    mem_limit: 200m
+    memswap_limit: 500m
 
   # ---------------------------------------------------------------------------
   # Airflow Webserver
@@ -171,8 +242,14 @@ services:
       timeout: 30s
       retries: 3
       start_period: 120s
-    mem_limit: 256m
-    memswap_limit: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 200m
+        reservations:
+          memory: 100m
+    mem_limit: 200m
+    memswap_limit: 500m
 
   # ---------------------------------------------------------------------------
   # Airflow Init (runs once on first start)
