@@ -104,7 +104,7 @@ services:
       # DRILLBIT_MAX_PROC_MEM: Tổng RAM tối đa cho toàn bộ JVM process
       - DRILLBIT_MAX_PROC_MEM=400m
       # >>> MEM: JVM flags bổ sung để giảm memory footprint
-      - DRILL_JAVA_OPTS=-XX:MaxMetaspaceSize=64m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC -XX:+UseCompressedOops -XX:+UseCompressedClassPointers
+      - DRILL_JAVA_OPTS=-XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC -XX:+UseCompressedOops -XX:+UseCompressedClassPointers
     env_file:
       - .env
     stdin_open: true
@@ -219,11 +219,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200m
+          memory: 256m
         reservations:
-          memory: 100m
-    mem_limit: 200m
-    memswap_limit: 500m
+          memory: 128m
+    mem_limit: 256m
+    memswap_limit: 512m
 
   # ---------------------------------------------------------------------------
   # Airflow Webserver
@@ -245,11 +245,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200m
+          memory: 256m
         reservations:
-          memory: 100m
-    mem_limit: 200m
-    memswap_limit: 500m
+          memory: 128m
+    mem_limit: 256m
+    memswap_limit: 512m
 
   # ---------------------------------------------------------------------------
   # Airflow Init (runs once on first start)
