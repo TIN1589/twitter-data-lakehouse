@@ -59,7 +59,7 @@ SAMPLE_HASHTAGS_POOL = [
 CSV_FIELDNAMES = [
     "id", "text", "created_at", "author_id", "username",
     "lang", "like_count", "retweet_count", "reply_count",
-    "quote_count", "hashtags",
+    "quote_count", "hashtags", "batch_id", "batch_datetime",
 ]
 
 
