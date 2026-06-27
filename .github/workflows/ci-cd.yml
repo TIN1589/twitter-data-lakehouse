@@ -44,7 +44,7 @@ jobs:
   # -------------------------------------------------------------------
   deploy:
     runs-on: ubuntu-latest
-    name: "🚀 Deploy to EC2"
+    name: " Deploy to EC2"
     needs: lint
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
@@ -68,4 +68,4 @@ jobs:
             # Restart affected services (no rebuild needed for DAG changes)
             sudo docker compose restart scheduler webserver 2>&1
             
-            echo "✅ Deployed successfully!"
+            echo " Deployed successfully!"

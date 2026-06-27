@@ -12,7 +12,6 @@ Features:
 
 import csv
 import gc
-import io
 import json
 import os
 import random
