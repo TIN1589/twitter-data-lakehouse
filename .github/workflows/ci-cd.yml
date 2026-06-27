@@ -32,7 +32,9 @@ jobs:
             --count --statistics
 
       - name: Validate docker-compose.yaml
-        run: docker compose -f docker-compose.yaml config --quiet
+        run: |
+          cp sample.env .env
+          docker compose -f docker-compose.yaml config --quiet
 
       - name: Validate YAML files
         run: |
