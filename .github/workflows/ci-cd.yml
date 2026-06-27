@@ -1,0 +1,71 @@
+name: CI/CD — Twitter Data Lakehouse
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # -------------------------------------------------------------------
+  # Job 1: Lint & Validate
+  # -------------------------------------------------------------------
+  lint:
+    runs-on: ubuntu-latest
+    name: "🔍 Lint & Validate"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install linting tools
+        run: pip install flake8 yamllint
+
+      - name: Lint Python files
+        run: |
+          flake8 app/dags/ \
+            --max-line-length=120 \
+            --ignore=E501,W503,E402 \
+            --count --statistics
+
+      - name: Validate docker-compose.yaml
+        run: docker compose -f docker-compose.yaml config --quiet
+
+      - name: Validate YAML files
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 150}}}" \
+            docker-compose.yaml || true
+
+  # -------------------------------------------------------------------
+  # Job 2: Deploy to EC2 (only on push to main)
+  # -------------------------------------------------------------------
+  deploy:
+    runs-on: ubuntu-latest
+    name: "🚀 Deploy to EC2"
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/twitter-data-lakehouse
+            
+            # Fix permissions (Airflow may have created __pycache__)
+            sudo chown -R ubuntu:ubuntu app/dags/ 2>/dev/null || true
+            sudo rm -rf app/dags/__pycache__ 2>/dev/null || true
+            
+            # Pull latest code
+            git checkout -- . 2>/dev/null
+            git pull origin main
+            
+            # Restart affected services (no rebuild needed for DAG changes)
+            sudo docker compose restart scheduler webserver 2>&1
+            
+            echo "✅ Deployed successfully!"

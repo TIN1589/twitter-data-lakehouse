@@ -2,6 +2,8 @@
 
 Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển khai trên **AWS EC2**.
 
+> 📖 **Tài liệu kiến trúc chi tiết**: Xem [docs/architecture.md](docs/architecture.md) — bao gồm diagrams, so sánh Lakehouse concept, và đề xuất kiến trúc Production trên AWS.
+
 ## Architecture
 
 ```
@@ -11,9 +13,20 @@ Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển kha
 │  :8080       │     │  :9000/:9090 │     │  :8047        │     │  :8088       │
 └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
        │                    ▲                    │                     │
-       │              Parquet + JSON             │                     │
+       │         CSV + JSON + Parquet           │                     │
        └─── Mock Data ──────┘              S3A connector         Drill JDBC
 ```
+
+### Tại sao Lakehouse?
+
+| | Data Lake | Data Warehouse | **Data Lakehouse** (Dự án này) |
+|---|-----------|----------------|-------------------------------|
+| **Storage** | Cheap (S3) | Expensive (Redshift) | **Cheap (MinIO/S3)** |
+| **Format** | Raw files | Proprietary | **Open (Parquet)** |
+| **SQL** | Limited | Full | **Full (Drill)** |
+| **Chi phí** | Thấp | Cao | **Thấp** |
+
+> 📖 Chi tiết: [docs/architecture.md → Section 4](docs/architecture.md#4-data-lakehouse--khái-niệm--so-sánh)
 
 **Phân công vai trò:**
 | Vai trò | Thành viên | Phần phụ trách |
@@ -68,10 +81,10 @@ docker compose up -d
 ## Pipeline Flow
 
 1. **Airflow DAG** (`twitter_etl`) chạy mỗi 6 giờ
-2. **Mock Data Generator** tạo 20 tweets giả lập (realistic structure)
+2. **Mock Data Generator** tạo 50 tweets giả lập từ 8 user profiles khác nhau
 3. **Clean & Transform**: flatten nested data, thêm batch metadata
-4. **Upload to MinIO** via `boto3`: Parquet (cho Drill query) + JSON (raw backup)
-5. **Drill** query trực tiếp Parquet/JSON trên MinIO qua S3A connector
+4. **Upload to MinIO** via `boto3`: **CSV** (readable) + **JSON** (raw backup) + **Parquet** (columnar, fast queries)
+5. **Drill** query trực tiếp Parquet/CSV/JSON trên MinIO qua S3A connector
 6. **Superset** kết nối Drill để tạo charts và dashboards
 
 ### Kết nối Superset → Drill
@@ -84,49 +97,61 @@ drill+sadrill://drill:8047/dfs/s3.root?use_ssl=False
 ### Query mẫu trên Drill
 
 ```sql
--- Đếm tweets theo ngày
-SELECT
-  SUBSTR(created_at, 1, 10) AS tweet_date,
-  COUNT(*) AS total_tweets,
-  AVG(like_count) AS avg_likes
-FROM s3.root.`tweets/*/*.parquet`
-GROUP BY SUBSTR(created_at, 1, 10)
-ORDER BY tweet_date DESC;
+-- Thống kê tweets theo username
+SELECT username,
+       COUNT(*) AS total_tweets,
+       AVG(CAST(like_count AS INT)) AS avg_likes,
+       MAX(CAST(retweet_count AS INT)) AS max_retweets
+FROM s3.root.`tweets/2026/**/*.csv`
+GROUP BY username
+ORDER BY avg_likes DESC;
+
+-- Top hashtags
+SELECT hashtags, COUNT(*) AS frequency
+FROM s3.root.`tweets/2026/**/*.csv`
+WHERE hashtags <> ''
+GROUP BY hashtags
+ORDER BY frequency DESC
+LIMIT 10;
+```
+
+## CI/CD Pipeline
+
+Dự án sử dụng **GitHub Actions** cho CI/CD tự động:
+
+```
+Push to main → Lint (flake8 + yamllint) → Deploy to EC2 (SSH)
+```
+
+Xem: [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
+
+## Monitoring
+
+Health check script tự động kiểm tra toàn bộ hệ thống:
+
+```bash
+# Chạy thủ công
+bash scripts/health-check.sh
+
+# Cấu hình cron (mỗi 5 phút)
+crontab -e
+*/5 * * * * /home/ubuntu/twitter-data-lakehouse/scripts/health-check.sh >> /var/log/lakehouse-health.log 2>&1
 ```
 
 ## Resource Optimization (t3.micro)
 
 Đã tối ưu cho 1GB RAM + 4GB Swap:
 
-| Service | Memory Limit | Swap Limit |
-|---------|-------------|------------|
-| MinIO | 256 MB | 512 MB |
-| Drill | 512 MB | 768 MB |
-| Superset | 384 MB | 768 MB |
-| PostgreSQL | 128 MB | 256 MB |
-| Airflow Scheduler | 256 MB | 512 MB |
-| Airflow Webserver | 256 MB | 512 MB |
+| Service | Memory Limit | Kỹ thuật tối ưu |
+|---------|-------------|------------------|
+| MinIO | 200 MB | GOGC=20 (aggressive Go GC) |
+| Drill | 384 MB | SerialGC, CompressedOops, MaxMetaspace=128m |
+| Superset | 256 MB | Single gunicorn worker |
+| PostgreSQL | 100 MB | shared_buffers=32MB, work_mem=1MB |
+| Airflow Scheduler | 256 MB | SequentialExecutor, min_file_process_interval=60s |
+| Airflow Webserver | 256 MB | 1 worker, lazy import pyarrow |
 
-**Airflow tuning:**
-- `SequentialExecutor` (lightest, 1 task at a time)
-- 1 webserver worker (giảm từ mặc định 4)
-- Scheduler scan interval: 60s (giảm từ mặc định 30s)
-- Parallelism: 1
-
-> ⚠️ **Lần khởi động đầu tiên** mất 3-5 phút trên t3.micro do swap usage. Đây là bình thường.
-
-## Makefile Commands
-
-```bash
-make help      # Xem tất cả commands
-make setup     # Tạo .env + directories
-make build     # Build Docker images
-make start     # Start services
-make stop      # Stop services
-make status    # Kiểm tra health + memory usage
-make logs      # Xem logs
-make clean     # Xóa tất cả (DESTRUCTIVE)
-```
+> 📖 Chi tiết tối ưu: [docs/architecture.md → Section 5](docs/architecture.md#5-tối-ưu-hóa-cho-môi-trường-low-memory)
 
 ## Project Structure
 
@@ -134,13 +159,19 @@ make clean     # Xóa tất cả (DESTRUCTIVE)
 ├── app/
 │   └── dags/
 │       ├── twitter_etl.py          # Airflow DAG (main pipeline)
-│       └── mock_twitter_data.py    # Mock data generator
+│       └── mock_twitter_data.py    # Mock data generator (8 users)
 ├── conf/
 │   └── drill/
 │       ├── core-site.xml           # Drill → MinIO S3A config
-│       └── storage-plugins-override.conf  # Drill storage plugins
+│       └── storage-plugins-override.conf
+├── docs/
+│   └── architecture.md             # 📖 Architecture & Lakehouse docs
 ├── scripts/
-│   └── init.sh                     # EC2 setup script
+│   ├── init.sh                     # EC2 setup script
+│   └── health-check.sh             # Monitoring health check
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml               # GitHub Actions CI/CD
 ├── docker-compose.yaml             # All services (cloud-optimized)
 ├── airflow.Dockerfile              # Custom Airflow image
 ├── superset_drill.Dockerfile       # Superset + Drill connector

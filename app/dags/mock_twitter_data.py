@@ -1,8 +1,13 @@
-"""Mock Twitter Data Generator — Memory-Optimized.
+"""Mock Twitter Data Generator — Memory-Optimized, Multi-User.
 
 Generates fake tweet data using Python generators (yield).
 NO Pandas, NO large in-memory lists. Data is streamed chunk-by-chunk.
 Optimized for AWS EC2 t3.micro (1GB RAM + 4GB Swap).
+
+Features:
+- Multiple realistic Twitter users (not just one)
+- Diverse tweet content across tech, business, science
+- Realistic engagement metrics based on follower count
 """
 
 import csv
@@ -13,46 +18,74 @@ import os
 import random
 from datetime import datetime, timedelta
 
-# Realistic sample tweets (tech/business themed)
+# ---------------------------------------------------------------------------
+# Multi-user profiles — realistic Twitter accounts
+# ---------------------------------------------------------------------------
+USERS = [
+    {"author_id": "44196397", "username": "elonmusk", "followers": 180_000_000},
+    {"author_id": "813286", "username": "BarackObama", "followers": 133_000_000},
+    {"author_id": "15846407", "username": "BillGates", "followers": 63_000_000},
+    {"author_id": "50393960", "username": "BillNye", "followers": 6_800_000},
+    {"author_id": "17919972", "username": "sundaboreng", "followers": 12_000_000},
+    {"author_id": "1aboreng5", "username": "NASA", "followers": 97_000_000},
+    {"author_id": "783214", "username": "Twitter", "followers": 65_000_000},
+    {"author_id": "34713362", "username": "samaltman", "followers": 3_200_000},
+]
+
+# Diverse tweet content — tech, science, business, social
 SAMPLE_TEXTS = [
+    # Tech / AI
     "Just had an incredible meeting about the future of AI. The possibilities are truly endless! 🚀",
-    "SpaceX Starship test flight was amazing today. One step closer to Mars! 🌟",
-    "Tesla just broke another delivery record this quarter. Proud of the entire team! ⚡",
-    "The future of sustainable energy is here. Solar + batteries will change everything.",
-    "Working on something exciting at the Gigafactory. Can't wait to share more soon!",
-    "Free speech is the bedrock of a functioning democracy.",
-    "Autopilot is getting better every day. Neural net improvements are remarkable.",
-    "Starlink now has over 2 million active subscribers worldwide 🛰️",
-    "Just visited the Boring Company tunnel. Transportation will never be the same.",
     "AI safety is one of the most important issues of our time. We need to get this right.",
-    "Production at record levels. The team is executing incredibly well.",
-    "Innovation happens when you push boundaries and refuse to accept the status quo.",
-    "Mars is looking more achievable every day. Humanity's future is multiplanetary.",
-    "Battery technology is the key to solving climate change. We're making progress.",
-    "Engineering is the closest thing to magic that exists in this world.",
-    "Just reviewed the latest FSD beta. The improvement curve is exponential.",
-    "Space exploration inspires the next generation of scientists and engineers.",
-    "Building the machine that builds the machine. That's the real challenge.",
-    "Renewable energy adoption is accelerating faster than anyone predicted.",
-    "The best part of my job is working with incredibly talented people every day.",
     "Neural networks are getting smarter. The implications are profound.",
-    "Every great company was once a startup with a crazy idea.",
     "Open source AI will democratize technology for everyone on the planet.",
+    "The pace of AI development is unprecedented. We need thoughtful regulation.",
+    "Large language models are changing how we interact with technology fundamentally.",
+    "Just tested the latest AI model. The reasoning capabilities are remarkable.",
+    # Space
+    "SpaceX Starship test flight was amazing today. One step closer to Mars! 🌟",
+    "Mars is looking more achievable every day. Humanity's future is multiplanetary.",
+    "Space exploration inspires the next generation of scientists and engineers.",
     "Rocket landing success rate keeps improving. Reusability is the future of space.",
+    "New telescope data reveals thousands of potentially habitable exoplanets 🔭",
+    # Energy / Climate
+    "The future of sustainable energy is here. Solar + batteries will change everything.",
+    "Battery technology is the key to solving climate change. We're making progress.",
+    "Renewable energy adoption is accelerating faster than anyone predicted.",
     "Electric vehicles are not just better for the environment, they're better cars. Period.",
+    "Climate action requires both innovation and policy. We need both working together.",
+    # Business / Innovation
+    "Tesla just broke another delivery record this quarter. Proud of the entire team! ⚡",
+    "Innovation happens when you push boundaries and refuse to accept the status quo.",
+    "Building the machine that builds the machine. That's the real challenge.",
+    "Every great company was once a startup with a crazy idea.",
+    "The best part of my job is working with incredibly talented people every day.",
+    "Startup founders: focus on building something people actually want, not fundraising.",
+    # Science / Education
+    "Engineering is the closest thing to magic that exists in this world.",
+    "Science literacy is fundamental to a functioning democracy. Invest in education.",
+    "The James Webb Space Telescope continues to rewrite our understanding of the cosmos.",
+    "Vaccines remain one of humanity's greatest achievements. Science saves lives.",
+    # Social / Policy
+    "Free speech is the bedrock of a functioning democracy.",
+    "Education is the most powerful tool we have to change the world.",
+    "Access to clean water and sanitation should be a basic human right everywhere.",
+    "The digital divide is real. We need to ensure technology benefits everyone.",
 ]
 
 SAMPLE_HASHTAGS_POOL = [
-    ["AI", "FutureTech"],
+    ["AI", "FutureTech", "MachineLearning"],
     ["SpaceX", "Mars", "Space"],
     ["Tesla", "EV", "ElectricVehicles"],
     ["Energy", "Solar", "Sustainability"],
-    ["Innovation", "Tech"],
+    ["Innovation", "Tech", "Startups"],
     ["Starlink", "Internet", "Satellite"],
-    ["Engineering", "Science"],
+    ["Engineering", "Science", "STEM"],
     ["FSD", "Autopilot", "SelfDriving"],
-    ["ClimateChange", "CleanEnergy"],
-    ["OpenSource", "AI"],
+    ["ClimateChange", "CleanEnergy", "NetZero"],
+    ["OpenSource", "AI", "LLM"],
+    ["Education", "Learning", "Future"],
+    ["NASA", "Astronomy", "JamesWebb"],
 ]
 
 # --- CSV column definition (single source of truth) ---
@@ -63,30 +96,34 @@ CSV_FIELDNAMES = [
 ]
 
 
-def generate_mock_tweets(count=20):
+def generate_mock_tweets(count=50):
     """Generator: yields one mock tweet dict at a time.
 
     >>> MEM: O(1) per tweet instead of O(N) for entire list.
+    Now with multiple users and follower-scaled engagement metrics.
     """
     base_time = datetime.utcnow()
 
     for _ in range(count):
+        user = random.choice(USERS)
+        # Scale engagement metrics by follower count (more realistic)
+        follower_scale = user["followers"] / 100_000_000
         created_at = base_time - timedelta(
-            minutes=random.randint(1, 1440),
+            minutes=random.randint(1, 4320),  # Up to 3 days back
             seconds=random.randint(0, 59),
         )
         yield {
             "id": str(random.randint(10**17, 10**18 - 1)),
             "text": random.choice(SAMPLE_TEXTS),
             "created_at": created_at.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-            "author_id": "44196397",
-            "username": "elonmusk",
-            "lang": random.choice(["en", "en", "en", "es", "fr"]),
+            "author_id": user["author_id"],
+            "username": user["username"],
+            "lang": random.choice(["en", "en", "en", "en", "es", "fr", "ja", "pt"]),
             "public_metrics": {
-                "like_count": random.randint(500, 800000),
-                "retweet_count": random.randint(100, 200000),
-                "reply_count": random.randint(50, 80000),
-                "quote_count": random.randint(10, 30000),
+                "like_count": int(random.randint(100, 500000) * follower_scale),
+                "retweet_count": int(random.randint(50, 150000) * follower_scale),
+                "reply_count": int(random.randint(20, 50000) * follower_scale),
+                "quote_count": int(random.randint(5, 20000) * follower_scale),
             },
             "hashtags": random.choice(SAMPLE_HASHTAGS_POOL),
         }
@@ -169,26 +206,9 @@ def ensure_bucket(s3, bucket_name):
         s3.create_bucket(Bucket=bucket_name)
 
 
-def upload_to_minio_stream(file_obj, bucket_name, object_key, content_type="application/octet-stream"):
-    """Upload a file-like object to MinIO using streaming multipart upload.
-
-    >>> MEM: uses upload_fileobj (multipart) instead of put_object (full bytes in RAM).
-    """
-    s3 = get_s3_client()
-    ensure_bucket(s3, bucket_name)
-
-    s3.upload_fileobj(
-        Fileobj=file_obj,
-        Bucket=bucket_name,
-        Key=object_key,
-        ExtraArgs={"ContentType": content_type},
-    )
-
-
 # Allow running as standalone script
 if __name__ == "__main__":
-    # Generate 2 separate generators (generators are single-pass)
-    save_to_json_streaming(generate_mock_tweets(count=30), "output/mock_tweets.json")
-    save_to_csv_streaming(generate_mock_tweets(count=30), "output/mock_tweets.csv")
-    gc.collect()  # MEM: force garbage collection after batch
-    print("Generated 30 mock tweets → output/mock_tweets.json, output/mock_tweets.csv")
+    save_to_json_streaming(generate_mock_tweets(count=50), "output/mock_tweets.json")
+    save_to_csv_streaming(generate_mock_tweets(count=50), "output/mock_tweets.csv")
+    gc.collect()
+    print("Generated 50 mock tweets → output/mock_tweets.json, output/mock_tweets.csv")
