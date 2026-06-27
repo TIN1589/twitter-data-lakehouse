@@ -140,14 +140,16 @@ services:
       - superset-data:/app/superset_home
     environment:
       # >>> MEM: Superset metadata cache nhỏ hơn
-      - SUPERSET_WEBSERVER_TIMEOUT=120
+      - SUPERSET_WEBSERVER_TIMEOUT=300
+      - SQLLAB_TIMEOUT=300
+      - SUPERSET_SQLLAB_ASYNC_TIME_LIMIT_SEC=300
     command: >
       bash -c "
       export SUPERSET_SECRET_KEY=$${SUPERSET_SECRET_KEY:-thisisasecretkeythatcanbeanystring123456789} &&
       superset db upgrade &&
       superset fab create-admin --username admin --firstname Admin --lastname Admin --email admin@admin.com --password admin || true &&
       superset init &&
-      gunicorn --bind 0.0.0.0:8088 --workers 1 --threads 2 --timeout 120 --limit-request-line 0 --max-requests 50 --max-requests-jitter 10 'superset.app:create_app()'
+      gunicorn --bind 0.0.0.0:8088 --workers 1 --threads 2 --timeout 300 --limit-request-line 0 --max-requests 50 --max-requests-jitter 10 'superset.app:create_app()'
       "
     deploy:
       resources:
