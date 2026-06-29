@@ -27,6 +27,7 @@ x-common:
   volumes:
     - ./app/dags:/opt/airflow/dags
     - ./app/logs:/opt/airflow/logs
+    - ./conf/airflow/webserver_config.py:/opt/airflow/webserver_config.py:ro
   networks:
     - lakehouse
 
