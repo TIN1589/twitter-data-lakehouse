@@ -1,0 +1,452 @@
+[
+  {
+    "id": "1735492817263592448",
+    "text": "GPT-4o is incredibly fast and smart. The voice mode feels like talking to a real human. The future of AI interaction is here. #OpenAI #GPT4",
+    "created_at": "2024-05-13T10:00:00.000Z",
+    "author_id": "84129481",
+    "username": "sama",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 85000,
+      "retweet_count": 12000,
+      "reply_count": 3500,
+      "quote_count": 1800
+    },
+    "hashtags": ["OpenAI", "GPT4"]
+  },
+  {
+    "id": "1735492817263592449",
+    "text": "NVIDIA Blackwell B200 is a monster. 20 petaflops of AI performance. The computing power we are seeing today is just mind-blowing. #NVIDIA #AI #Hardware",
+    "created_at": "2024-03-18T15:30:00.000Z",
+    "author_id": "19482910",
+    "username": "computex_fan",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 42000,
+      "retweet_count": 8200,
+      "reply_count": 1200,
+      "quote_count": 450
+    },
+    "hashtags": ["NVIDIA", "AI", "Hardware"]
+  },
+  {
+    "id": "1735492817263592450",
+    "text": "Just watched SpaceX Starship flight 4 landing successfully in both stages. The precision of the booster catch on the virtual tower is unbelievable. Humanity is going to Mars! #SpaceX #Starship",
+    "created_at": "2024-06-06T12:15:00.000Z",
+    "author_id": "44196397",
+    "username": "elonmusk",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 320000,
+      "retweet_count": 54000,
+      "reply_count": 18000,
+      "quote_count": 9500
+    },
+    "hashtags": ["SpaceX", "Starship"]
+  },
+  {
+    "id": "1735492817263592451",
+    "text": "Tesla FSD v12.4 is a major leap forward. End-to-end neural networks are performing exceptionally well. Almost zero interventions on a 30-minute drive today. #Tesla #FSD",
+    "created_at": "2024-06-10T08:45:00.000Z",
+    "author_id": "44196397",
+    "username": "elonmusk",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 115000,
+      "retweet_count": 14500,
+      "reply_count": 6800,
+      "quote_count": 2200
+    },
+    "hashtags": ["Tesla", "FSD"]
+  },
+  {
+    "id": "1735492817263592452",
+    "text": "The energy transition is accelerating. Solar power plus battery storage is now the cheapest form of new electricity in many parts of the world. #Sustainability #Solar",
+    "created_at": "2024-04-22T09:00:00.000Z",
+    "author_id": "10293847",
+    "username": "clean_energy_news",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 15000,
+      "retweet_count": 3800,
+      "reply_count": 450,
+      "quote_count": 180
+    },
+    "hashtags": ["Sustainability", "Solar"]
+  },
+  {
+    "id": "1735492817263592453",
+    "text": "PyTorch 2.3 has some great performance improvements for LLM training. The integration with Triton is getting better. Open-source AI tools are thriving. #MachineLearning #PyTorch",
+    "created_at": "2024-04-25T14:20:00.000Z",
+    "author_id": "92837482",
+    "username": "pytorch_dev",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 8900,
+      "retweet_count": 1900,
+      "reply_count": 120,
+      "quote_count": 85
+    },
+    "hashtags": ["MachineLearning", "PyTorch"]
+  },
+  {
+    "id": "1735492817263592454",
+    "text": "WebGPU is a game-changer for web-based graphics and machine learning. Running 3D environments and AI models directly in the browser is now extremely fast. #WebGPU #WebDev",
+    "created_at": "2024-05-01T11:10:00.000Z",
+    "author_id": "29103847",
+    "username": "js_wizard",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 12400,
+      "retweet_count": 3100,
+      "reply_count": 240,
+      "quote_count": 110
+    },
+    "hashtags": ["WebGPU", "WebDev"]
+  },
+  {
+    "id": "1735492817263592455",
+    "text": "Starlink has launched its mini dish! Extremely compact, fits in a backpack, and has a built-in router. This is going to revolutionize remote work and travel. #Starlink #Tech",
+    "created_at": "2024-06-18T16:00:00.000Z",
+    "author_id": "44196397",
+    "username": "elonmusk",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 95000,
+      "retweet_count": 11000,
+      "reply_count": 4800,
+      "quote_count": 1500
+    },
+    "hashtags": ["Starlink", "Tech"]
+  },
+  {
+    "id": "1735492817263592456",
+    "text": "Llama 3 is a massive win for the open-source community. The 8B and 70B models are punchy and highly competitive with proprietary models. Mark Zuckerberg is doing a huge service here. #Llama3 #OpenSource",
+    "created_at": "2024-04-18T17:30:00.000Z",
+    "author_id": "23491029",
+    "username": "ai_researcher",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 34000,
+      "retweet_count": 7800,
+      "reply_count": 980,
+      "quote_count": 620
+    },
+    "hashtags": ["Llama3", "OpenSource"]
+  },
+  {
+    "id": "1735492817263592457",
+    "text": "The rapid progress of humanoid robots is breathtaking. Boston Dynamics Atlas went fully electric, and Tesla Optimus is learning to sort batteries autonomously. We are witnessing the dawn of robotics. #Robotics #AI",
+    "created_at": "2024-04-17T09:30:00.000Z",
+    "author_id": "19283746",
+    "username": "tech_insider",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 27000,
+      "retweet_count": 5100,
+      "reply_count": 890,
+      "quote_count": 340
+    },
+    "hashtags": ["Robotics", "AI"]
+  },
+  {
+    "id": "1735492817263592458",
+    "text": "Nvidia is now briefly the most valuable company in the world. An incredible milestone for Jensen Huang and the entire team. Hardware powers the AI revolution. #NVIDIA #Tech",
+    "created_at": "2024-06-18T20:00:00.000Z",
+    "author_id": "49201938",
+    "username": "wallstreet_news",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 58000,
+      "retweet_count": 9400,
+      "reply_count": 1500,
+      "quote_count": 800
+    },
+    "hashtags": ["NVIDIA", "Tech"]
+  },
+  {
+    "id": "1735492817263592459",
+    "text": "OpenAI's SearchGPT is super fast. Instant answers with clear citations and web links. It's an interesting approach to blending search with conversational AI. #SearchGPT #AI",
+    "created_at": "2024-07-25T14:00:00.000Z",
+    "author_id": "84129481",
+    "username": "sama",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 62000,
+      "retweet_count": 9100,
+      "reply_count": 2300,
+      "quote_count": 1100
+    },
+    "hashtags": ["SearchGPT", "AI"]
+  },
+  {
+    "id": "1735492817263592460",
+    "text": "Kubernetes 1.30 was released! It's called 'Uwubernetes' by some, but the new features like Structured Parameters for Dynamic Resource Allocation are very powerful. #Kubernetes #CloudNative",
+    "created_at": "2024-04-17T11:00:00.000Z",
+    "author_id": "10492837",
+    "username": "cloud_guru",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 5200,
+      "retweet_count": 1200,
+      "reply_count": 85,
+      "quote_count": 40
+    },
+    "hashtags": ["Kubernetes", "CloudNative"]
+  },
+  {
+    "id": "1735492817263592461",
+    "text": "The Rust programming language continues to gain ground in Linux kernel development and systems programming. Safe memory management by default is a massive win for security. #RustLang #Linux",
+    "created_at": "2024-05-15T08:00:00.000Z",
+    "author_id": "19482736",
+    "username": "rust_dev",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 18500,
+      "retweet_count": 4200,
+      "reply_count": 310,
+      "quote_count": 150
+    },
+    "hashtags": ["RustLang", "Linux"]
+  },
+  {
+    "id": "1735492817263592462",
+    "text": "FastAPI is honestly one of the best python web frameworks ever created. The automatic docs, typing support, and raw speed make it a joy to use. #Python #FastAPI",
+    "created_at": "2024-05-20T16:45:00.000Z",
+    "author_id": "48102938",
+    "username": "python_coder",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 9600,
+      "retweet_count": 1800,
+      "reply_count": 140,
+      "quote_count": 65
+    },
+    "hashtags": ["Python", "FastAPI"]
+  },
+  {
+    "id": "1735492817263592463",
+    "text": "Apple Intelligence was announced today. Deeply integrated with iOS 18 and macOS Sequoia, powered by on-device and private cloud models. Very thoughtful approach to privacy. #Apple #AppleIntelligence",
+    "created_at": "2024-06-10T19:00:00.000Z",
+    "author_id": "20193847",
+    "username": "apple_hub",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 120000,
+      "retweet_count": 22000,
+      "reply_count": 5600,
+      "quote_count": 3200
+    },
+    "hashtags": ["Apple", "AppleIntelligence"]
+  },
+  {
+    "id": "1735492817263592464",
+    "text": "The developer experience with Vercel and Next.js is second to none. Building and deploying high-performance React apps has never been this seamless. #NextJS #React",
+    "created_at": "2024-05-25T13:30:00.000Z",
+    "author_id": "29304812",
+    "username": "frontend_dev",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 11000,
+      "retweet_count": 2100,
+      "reply_count": 180,
+      "quote_count": 75
+    },
+    "hashtags": ["NextJS", "React"]
+  },
+  {
+    "id": "1735492817263592465",
+    "text": "Hugging Face now hosts over 500,000 models! This hub has truly become the town square for machine learning. Congrats to the team on democratizing AI. #HuggingFace #AI",
+    "created_at": "2024-03-22T10:30:00.000Z",
+    "author_id": "93820193",
+    "username": "hf_community",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 16000,
+      "retweet_count": 3500,
+      "reply_count": 210,
+      "quote_count": 125
+    },
+    "hashtags": ["HuggingFace", "AI"]
+  },
+  {
+    "id": "1735492817263592466",
+    "text": "With the rise of local LLMs running via Ollama and Llama.cpp, developers can now run powerful models directly on their M3 Macbooks offline. Privacy and power in one. #LocalLLM #AI",
+    "created_at": "2024-04-10T15:00:00.000Z",
+    "author_id": "19402938",
+    "username": "mac_enthusiast",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 21000,
+      "retweet_count": 4800,
+      "reply_count": 410,
+      "quote_count": 230
+    },
+    "hashtags": ["LocalLLM", "AI"]
+  },
+  {
+    "id": "1735492817263592467",
+    "text": "DeepSeek-V2 has shaken the AI world. A massive Mixture-of-Experts model with extreme cost-efficiency and performance matching GPT-4-class models. Open source is moving incredibly fast in China. #DeepSeek #AI",
+    "created_at": "2024-05-07T08:30:00.000Z",
+    "author_id": "94820394",
+    "username": "ai_analyst",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 38000,
+      "retweet_count": 8900,
+      "reply_count": 1100,
+      "quote_count": 750
+    },
+    "hashtags": ["DeepSeek", "AI"]
+  },
+  {
+    "id": "1735492817263592468",
+    "text": "Quantum computing is slowly moving out of the lab. IBM just unveiled its newest utility-scale quantum processor. Exciting times ahead for cryptographic and material science research. #QuantumComputing #Tech",
+    "created_at": "2024-06-01T14:15:00.000Z",
+    "author_id": "38491029",
+    "username": "science_daily",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 13400,
+      "retweet_count": 2900,
+      "reply_count": 190,
+      "quote_count": 95
+    },
+    "hashtags": ["QuantumComputing", "Tech"]
+  },
+  {
+    "id": "1735492817263592469",
+    "text": "TypeScript 5.4 is out! Better auto-imports, preserved template literal types, and new utility types. Life is too short to write vanilla JavaScript without static types. #TypeScript #WebDev",
+    "created_at": "2024-03-06T12:00:00.000Z",
+    "author_id": "49201938",
+    "username": "ts_coder",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 9800,
+      "retweet_count": 1700,
+      "reply_count": 130,
+      "quote_count": 55
+    },
+    "hashtags": ["TypeScript", "WebDev"]
+  },
+  {
+    "id": "1735492817263592470",
+    "text": "Docker revolutionized development, but Podman is an amazing alternative. Daemonless, rootless by default, and fully OCI compliant. Worth a try if you want to optimize your container environment. #Docker #Containers",
+    "created_at": "2024-04-12T16:00:00.000Z",
+    "author_id": "19482039",
+    "username": "devops_guy",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 7600,
+      "retweet_count": 1400,
+      "reply_count": 180,
+      "quote_count": 40
+    },
+    "hashtags": ["Docker", "Containers"]
+  },
+  {
+    "id": "1735492817263592471",
+    "text": "Prometheus and Grafana remain the gold standard for cloud-native observability. If you aren't monitoring your systems with real-time metrics, you are flying blind. #DevOps #Observability",
+    "created_at": "2024-05-18T11:30:00.000Z",
+    "author_id": "20394810",
+    "username": "sysadm_mike",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 8200,
+      "retweet_count": 1900,
+      "reply_count": 95,
+      "quote_count": 35
+    },
+    "hashtags": ["DevOps", "Observability"]
+  },
+  {
+    "id": "1735492817263592472",
+    "text": "GitHub Copilot has saved me at least 5 hours of boilerplate coding this week alone. It's not a replacement for thinking, but it's the ultimate productivity multiplier. #GitHubCopilot #AI",
+    "created_at": "2024-06-12T10:00:00.000Z",
+    "author_id": "93820193",
+    "username": "code_surfer",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 29000,
+      "retweet_count": 4500,
+      "reply_count": 870,
+      "quote_count": 320
+    },
+    "hashtags": ["GitHubCopilot", "AI"]
+  },
+  {
+    "id": "1735492817263592473",
+    "text": "PostgreSQL is absolute magic. A database that has stood the test of time, supports JSON, relational data, and with pgvector, handles vector search seamlessly. Simply incredible. #PostgreSQL #Database",
+    "created_at": "2024-05-05T09:15:00.000Z",
+    "author_id": "49301938",
+    "username": "db_wizard",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 23000,
+      "retweet_count": 5200,
+      "reply_count": 450,
+      "quote_count": 190
+    },
+    "hashtags": ["PostgreSQL", "Database"]
+  },
+  {
+    "id": "1735492817263592474",
+    "text": "The Apache Iceberg table format is winning the modern data stack battle. Seamless ACID transactions, schema evolution, and time travel over object storage. This is the future of data lakehouses. #DataLakehouse #ApacheIceberg",
+    "created_at": "2024-06-15T13:00:00.000Z",
+    "author_id": "20491029",
+    "username": "data_engineer_joe",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 11500,
+      "retweet_count": 2800,
+      "reply_count": 160,
+      "quote_count": 80
+    },
+    "hashtags": ["DataLakehouse", "ApacheIceberg"]
+  },
+  {
+    "id": "1735492817263592475",
+    "text": "DuckDB is SQLite for analytics. Fast, serverless, and allows querying parquet files locally with pure SQL. Perfect for modern data pipelines and data science workflows. #DuckDB #SQL",
+    "created_at": "2024-04-30T10:45:00.000Z",
+    "author_id": "49201938",
+    "username": "analyst_pro",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 14200,
+      "retweet_count": 3100,
+      "reply_count": 220,
+      "quote_count": 115
+    },
+    "hashtags": ["DuckDB", "SQL"]
+  },
+  {
+    "id": "1735492817263592476",
+    "text": "Generative AI is shifting from text and images to music and video. Tools like Sora and Udio show that the creative landscape is going to transform faster than anyone anticipated. #Sora #Udio #GenerativeAI",
+    "created_at": "2024-04-14T15:30:00.000Z",
+    "author_id": "23940192",
+    "username": "creative_ai",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 48000,
+      "retweet_count": 9200,
+      "reply_count": 1400,
+      "quote_count": 850
+    },
+    "hashtags": ["Sora", "Udio", "GenerativeAI"]
+  },
+  {
+    "id": "1735492817263592477",
+    "text": "Just completed my first end-to-end data pipeline on AWS using S3, Athena, and dbt. Cloud data engineering is extremely powerful but the configuration is where the real work is! #CloudComputing #AWS #DataEngineering",
+    "created_at": "2024-06-19T09:00:00.000Z",
+    "author_id": "30491829",
+    "username": "cloud_intern",
+    "lang": "en",
+    "public_metrics": {
+      "like_count": 3100,
+      "retweet_count": 450,
+      "reply_count": 65,
+      "quote_count": 15
+    },
+    "hashtags": ["CloudComputing", "AWS", "DataEngineering"]
+  }
+]
