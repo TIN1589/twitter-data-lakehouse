@@ -18,8 +18,8 @@ WTF_CSRF_TIME_LIMIT = None
 # Allow CSRF tokens across different origins (needed for multi-machine access)
 WTF_CSRF_SSL_STRICT = False
 
-# Keep CSRF enabled but relax restrictions for demo environment
-WTF_CSRF_ENABLED = True
+# Keep CSRF disabled for demo environment to prevent cross-machine IP issues
+WTF_CSRF_ENABLED = False
 
 # -------------------------------------------------------------------------
 # Session config
