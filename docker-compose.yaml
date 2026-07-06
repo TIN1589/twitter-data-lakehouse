@@ -222,11 +222,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 350m
         reservations:
           memory: 128m
-    mem_limit: 256m
-    memswap_limit: 512m
+    mem_limit: 350m
+    memswap_limit: 800m
 
   # ---------------------------------------------------------------------------
   # Airflow Webserver
@@ -248,11 +248,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 400m
         reservations:
           memory: 128m
-    mem_limit: 256m
-    memswap_limit: 512m
+    mem_limit: 400m
+    memswap_limit: 900m
 
   # ---------------------------------------------------------------------------
   # Airflow Init (runs once on first start)
