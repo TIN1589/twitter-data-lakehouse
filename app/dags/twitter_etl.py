@@ -183,9 +183,9 @@ def upload_to_s3(data):
         )
         logger.info("Uploaded Parquet: %s (%d bytes)", parquet_key, len(parquet_bytes))
 
-        # Upload JSON (raw data reference)
+        # Upload JSON to separate prefix (keep tweets/ clean for Athena Parquet queries)
         json_bytes = json.dumps(tweet_list, indent=2, ensure_ascii=False).encode("utf-8")
-        json_key = f"tweets/{date_path}/tweets_{time_prefix}_{batch_id}.json"
+        json_key = f"tweets-raw/{date_path}/tweets_{time_prefix}_{batch_id}.json"
         s3.put_object(
             Bucket=bucket,
             Key=json_key,

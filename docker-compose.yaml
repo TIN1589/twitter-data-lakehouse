@@ -85,44 +85,15 @@ services:
 
   # ---------------------------------------------------------------------------
   # Apache Drill — Distributed SQL Query Engine
-  # Role: Cloud Compute (Hoàng, Triệu)
   # ---------------------------------------------------------------------------
-  drill:
-    image: apache/drill:1.21.1
-    restart: unless-stopped
-    ports:
-      - '8047:8047'
-      - '31010:31010'
-    volumes:
-      - ./conf/drill/core-site.xml:/opt/drill/conf/core-site.xml
-      - ./conf/drill/storage-plugins-override.conf:/opt/drill/conf/storage-plugins-override.conf
-    environment:
-      # >>> MEM: JVM tuning cực kỳ aggressive cho t3.micro
-      # DRILL_HEAP: Heap size cho Drill query engine (giảm từ default 4GB)
-      - DRILL_HEAP=192m
-      # DRILL_MAX_DIRECT_MEMORY: Off-heap buffer cho I/O (giảm từ default 8GB)
-      - DRILL_MAX_DIRECT_MEMORY=192m
-      # DRILLBIT_MAX_PROC_MEM: Tổng RAM tối đa cho toàn bộ JVM process
-      - DRILLBIT_MAX_PROC_MEM=400m
-      # >>> MEM: JVM flags bổ sung để giảm memory footprint
-      - DRILL_JAVA_OPTS=-XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC -XX:+UseCompressedOops -XX:+UseCompressedClassPointers
-    env_file:
-      - .env
-    stdin_open: true
-    tty: true
-    deploy:
-      resources:
-        limits:
-          memory: 384m
-        reservations:
-          memory: 200m
-    mem_limit: 384m
-    memswap_limit: 768m
-    depends_on:
-      minio:
-        condition: service_healthy
-    networks:
-      - lakehouse
+  # Apache Drill — DISABLED (replaced by Amazon Athena)
+  # Role: Cloud Compute (Hoàng, Triệu)
+  # NOTE: Tắt Drill để tiết kiệm 384MB RAM trên EC2 t3.micro
+  #       Thay thế bằng Amazon Athena (serverless, pay-per-query ~$0/tuần)
+  # ---------------------------------------------------------------------------
+  # drill:
+  #   image: apache/drill:1.21.1
+  #   ... (disabled - see git history)
 
   # ---------------------------------------------------------------------------
   # Apache Superset — BI & Visualization
@@ -161,8 +132,8 @@ services:
     mem_limit: 256m
     memswap_limit: 640m
     depends_on:
-      drill:
-        condition: service_started
+      minio:
+        condition: service_healthy
     networks:
       - lakehouse
 
