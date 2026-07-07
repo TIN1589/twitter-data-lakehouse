@@ -46,42 +46,14 @@ networks:
 services:
 
   # ---------------------------------------------------------------------------
-  # MinIO — S3-compatible Object Storage
+  # MinIO — DISABLED (replaced by Amazon S3)
   # Role: Cloud Storage (Vinh, Tín)
+  # NOTE: Tắt MinIO để tiết kiệm ~200MB RAM trên EC2 t3.micro
+  #       Dữ liệu mới đã được đẩy thẳng lên Amazon S3 (ap-southeast-1)
   # ---------------------------------------------------------------------------
-  minio:
-    image: minio/minio:RELEASE.2024-01-05T22-17-24Z
-    restart: unless-stopped
-    ports:
-      - '9000:9000'
-      - '9090:9090'
-    volumes:
-      - minio-data:/data
-    env_file:
-      - .env
-    environment:
-      # >>> MEM: Giới hạn Go GC để MinIO không chiếm quá nhiều RAM
-      - GOGC=20
-      - GOMEMLIMIT=180MiB
-    command: server --console-address ":9090" /data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-    # >>> MEM: deploy.resources.limits (Docker Compose V3 / Swarm syntax)
-    deploy:
-      resources:
-        limits:
-          memory: 200m
-        reservations:
-          memory: 100m
-    # >>> MEM: Fallback limits cho docker-compose V2 (non-Swarm)
-    mem_limit: 200m
-    memswap_limit: 456m
-    networks:
-      - lakehouse
+  # minio:
+  #   image: minio/minio:RELEASE.2024-01-05T22-17-24Z
+  #   ... (disabled - replaced by Amazon S3)
 
   # ---------------------------------------------------------------------------
   # Apache Drill — Distributed SQL Query Engine
@@ -132,7 +104,7 @@ services:
     mem_limit: 256m
     memswap_limit: 640m
     depends_on:
-      minio:
+      postgres:
         condition: service_healthy
     networks:
       - lakehouse
