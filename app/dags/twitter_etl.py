@@ -126,8 +126,8 @@ def clean_twitter_data(data):
     retry_delay=300,  # Wait 5 minutes between retries
     pool="default_pool",
 )
-def upload_to_minio(data):
-    """Convert to Parquet + JSON and upload to MinIO via boto3.
+def upload_to_s3(data):
+    """Convert to Parquet + JSON and upload to Amazon S3 via boto3.
     
     Includes:
     - Retry logic (up to 3 attempts)
@@ -137,34 +137,31 @@ def upload_to_minio(data):
     try:
         import boto3
         import pandas as pd
-        from botocore.client import Config
 
         tweet_list, batch_datetime_str, batch_id = data
         batch_dt = datetime.strptime(batch_datetime_str, "%Y-%m-%d %H:%M:%S")
 
-        # Read MinIO config from environment
-        endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        access_key = os.getenv("MINIO_ROOT_USER", "minioadmin")
-        secret_key = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")
-        bucket = os.getenv("MINIO_BUCKET_NAME", "twitter-data")
+        # Read AWS S3 config from environment
+        access_key = os.getenv("AWS_ACCESS_KEY_ID")
+        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        region = os.getenv("AWS_DEFAULT_REGION", "ap-southeast-1")
+        bucket = os.getenv("S3_BUCKET_NAME", "twitter-data-lakehouse")
 
-        # Create boto3 S3 client for MinIO
+        # Create boto3 S3 client for Amazon S3
         s3 = boto3.client(
             "s3",
-            endpoint_url=f"http://{endpoint}",
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
-            config=Config(signature_version="s3v4"),
-            region_name="us-east-1",
+            region_name=region,
         )
 
-        # Ensure bucket exists
+        # Verify bucket exists
         try:
             s3.head_bucket(Bucket=bucket)
-            logger.info("Bucket '%s' exists", bucket)
-        except Exception:
-            s3.create_bucket(Bucket=bucket)
-            logger.info("Created bucket '%s'", bucket)
+            logger.info("S3 Bucket '%s' accessible", bucket)
+        except Exception as e:
+            logger.error("S3 Bucket '%s' not accessible: %s", bucket, e)
+            raise
 
         date_path = batch_dt.strftime("%Y/%m/%d")
         time_prefix = batch_dt.strftime("%H%M%S")
@@ -205,7 +202,7 @@ def upload_to_minio(data):
         }
         
     except Exception as e:
-        logger.error(f"Upload to MinIO failed: {str(e)}", exc_info=True)
+        logger.error(f"Upload to S3 failed: {str(e)}", exc_info=True)
         raise
 
 
@@ -297,7 +294,7 @@ def log_pipeline_metrics(upload_result, aggregation_result):
     1. **Generate**: Mock Twitter data (replaces Twitter API)
     2. **Validate**: Pydantic schema validation, null checks, duplicates, metrics validation
     3. **Clean**: Flatten and transform data structure
-    4. **Upload**: Parquet (analytics) + JSON (backup) to MinIO (with snappy compression)
+    4. **Upload**: Parquet (analytics) + JSON (backup) to Amazon S3 (with snappy compression)
     5. **Aggregate**: Daily summary statistics (engagement, languages, top hashtags)
     6. **Cleanup**: Remove data older than retention period (default: 30 days)
     7. **Monitor**: Log pipeline health and metrics
@@ -312,14 +309,15 @@ def log_pipeline_metrics(upload_result, aggregation_result):
     **Configuration:**
     - `MIN_VALID_TWEET_RATE`: Minimum valid tweet rate (default: 0.8)
     - `DATA_RETENTION_DAYS`: Days to keep data (default: 30)
-    - `MINIO_BUCKET_NAME`: Target bucket (default: twitter-data)
+    - `S3_BUCKET_NAME`: Target bucket (default: twitter-data-lakehouse)
+    - `AWS_DEFAULT_REGION`: AWS region (default: ap-southeast-1)
     """,
 )
 def twitter_etl():
     raw_data = generate_twitter_data()
     validated_data = validate_twitter_data(raw_data)
     cleaned_data = clean_twitter_data(validated_data)
-    upload_result = upload_to_minio(cleaned_data)
+    upload_result = upload_to_s3(cleaned_data)
     
     # Parallel tasks (independent operations)
     aggregation_result = aggregate_daily_stats(cleaned_data)
