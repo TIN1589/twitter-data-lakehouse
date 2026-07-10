@@ -4,6 +4,9 @@ Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển kha
 
 ## Kiến trúc hệ thống
 
+![AWS Data Lakehouse Architecture](docs/architecture_diagram.png)
+
+
 ```
 Twitter Mock Data (20 tweets/batch)
          │
