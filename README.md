@@ -6,57 +6,6 @@ Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển kha
 
 ![AWS Data Lakehouse Architecture](docs/architecture_diagram.png)
 
-
-```
-Twitter Mock Data (20 tweets/batch)
-         │
-         ▼ [1. Generate & Validate]
-┌─────────────────────────────────┐
-│       Amazon EC2 t3.micro       │
-│   ┌─────────────────────────┐   │
-│   │    Apache Airflow :8080  │   │  ← Pipeline Orchestration
-│   │    DAG: twitter_etl      │   │  ← Schedule: mỗi 6 tiếng
-│   └───────────┬─────────────┘   │
-│               │                 │
-│   ┌───────────▼─────────────┐   │
-│   │  PostgreSQL :5433        │   │  ← Airflow Metadata DB
-│   └─────────────────────────┘   │
-└───────────────┬─────────────────┘
-                │ [2. Upload boto3]
-                ▼
-┌───────────────────────────────────────────┐
-│             AWS Cloud Services            │
-│                                           │
-│  ┌──────────────────────────────────────┐ │
-│  │         Amazon S3                    │ │  ← Data Lake Storage
-│  │  bucket: twitter-data-lakehouse      │ │
-│  │  tweets/*.parquet  (Athena queries)  │ │
-│  │  tweets-raw/*.json (raw backup)      │ │
-│  └──────────────┬───────────────────────┘ │
-│                 │ [3. Schema catalog]      │
-│  ┌──────────────▼───────────────────────┐ │
-│  │       AWS Glue Data Catalog          │ │  ← Metadata Store
-│  │  database: twitter_lakehouse         │ │
-│  │  table: tweets (13 columns)          │ │
-│  └──────────────┬───────────────────────┘ │
-│                 │ [4. SQL query]           │
-│  ┌──────────────▼───────────────────────┐ │
-│  │         Amazon Athena                │ │  ← Serverless SQL Engine
-│  │  workgroup: twitter-lakehouse        │ │
-│  │  results → S3 athena-results bucket  │ │
-│  └──────────────┬───────────────────────┘ │
-└─────────────────┼─────────────────────────┘
-                  │ [5. Visualize]
-                  ▼
-┌─────────────────────────────────┐
-│       Amazon EC2 t3.micro       │
-│   ┌─────────────────────────┐   │
-│   │  Apache Superset :8088   │   │  ← BI Dashboard
-│   │  Connected to Athena     │   │
-│   └─────────────────────────┘   │
-└─────────────────────────────────┘
-```
-
 ## AWS Services sử dụng
 
 | Service | Vai trò | Chi phí/tháng |
