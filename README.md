@@ -1,212 +1,254 @@
-# Twitter Data Lakehouse — Cloud Deployment
+# Twitter Data Lakehouse — AWS Cloud Architecture
 
-Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển khai trên **AWS EC2**.
+Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển khai trên **AWS Cloud**.
 
-> 📖 **Tài liệu kiến trúc chi tiết**: Xem [docs/architecture.md](docs/architecture.md) — bao gồm diagrams, so sánh Lakehouse concept, và đề xuất kiến trúc Production trên AWS.
-
-## Architecture
+## Kiến trúc hệ thống
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Airflow    │────▶│    MinIO     │────▶│  Apache Drill │────▶│   Superset   │
-│ (Orchestrate)│     │  (S3 Storage)│     │  (SQL Engine) │     │(Visualization│
-│  :8080       │     │  :9000/:9090 │     │  :8047        │     │  :8088       │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
-       │                    ▲                    │                     │
-       │         CSV + JSON + Parquet           │                     │
-       └─── Mock Data ──────┘              S3A connector         Drill JDBC
+Twitter Mock Data (20 tweets/batch)
+         │
+         ▼ [1. Generate & Validate]
+┌─────────────────────────────────┐
+│       Amazon EC2 t3.micro       │
+│   ┌─────────────────────────┐   │
+│   │    Apache Airflow :8080  │   │  ← Pipeline Orchestration
+│   │    DAG: twitter_etl      │   │  ← Schedule: mỗi 6 tiếng
+│   └───────────┬─────────────┘   │
+│               │                 │
+│   ┌───────────▼─────────────┐   │
+│   │  PostgreSQL :5433        │   │  ← Airflow Metadata DB
+│   └─────────────────────────┘   │
+└───────────────┬─────────────────┘
+                │ [2. Upload boto3]
+                ▼
+┌───────────────────────────────────────────┐
+│             AWS Cloud Services            │
+│                                           │
+│  ┌──────────────────────────────────────┐ │
+│  │         Amazon S3                    │ │  ← Data Lake Storage
+│  │  bucket: twitter-data-lakehouse      │ │
+│  │  tweets/*.parquet  (Athena queries)  │ │
+│  │  tweets-raw/*.json (raw backup)      │ │
+│  └──────────────┬───────────────────────┘ │
+│                 │ [3. Schema catalog]      │
+│  ┌──────────────▼───────────────────────┐ │
+│  │       AWS Glue Data Catalog          │ │  ← Metadata Store
+│  │  database: twitter_lakehouse         │ │
+│  │  table: tweets (13 columns)          │ │
+│  └──────────────┬───────────────────────┘ │
+│                 │ [4. SQL query]           │
+│  ┌──────────────▼───────────────────────┐ │
+│  │         Amazon Athena                │ │  ← Serverless SQL Engine
+│  │  workgroup: twitter-lakehouse        │ │
+│  │  results → S3 athena-results bucket  │ │
+│  └──────────────┬───────────────────────┘ │
+└─────────────────┼─────────────────────────┘
+                  │ [5. Visualize]
+                  ▼
+┌─────────────────────────────────┐
+│       Amazon EC2 t3.micro       │
+│   ┌─────────────────────────┐   │
+│   │  Apache Superset :8088   │   │  ← BI Dashboard
+│   │  Connected to Athena     │   │
+│   └─────────────────────────┘   │
+└─────────────────────────────────┘
 ```
 
-### Tại sao Lakehouse?
+## AWS Services sử dụng
 
-| | Data Lake | Data Warehouse | **Data Lakehouse** (Dự án này) |
-|---|-----------|----------------|-------------------------------|
-| **Storage** | Cheap (S3) | Expensive (Redshift) | **Cheap (MinIO/S3)** |
-| **Format** | Raw files | Proprietary | **Open (Parquet)** |
-| **SQL** | Limited | Full | **Full (Drill)** |
-| **Chi phí** | Thấp | Cao | **Thấp** |
+| Service | Vai trò | Chi phí/tháng |
+|---------|---------|---------------|
+| **Amazon EC2** t3.micro | Host Airflow + Superset | ~$0 (free tier) |
+| **Amazon S3** | Data Lake — lưu Parquet + JSON | ~$0.02 |
+| **AWS Glue Data Catalog** | Metadata store — quản lý schema | $0 (free tier) |
+| **Amazon Athena** | Serverless SQL query engine | ~$0.01 (pay-per-query) |
+| **Tổng** | | **~$0.03/tháng** |
 
-> 📖 Chi tiết: [docs/architecture.md → Section 4](docs/architecture.md#4-data-lakehouse--khái-niệm--so-sánh)
+## Phân công vai trò nhóm
 
-**Phân công vai trò:**
 | Vai trò | Thành viên | Phần phụ trách |
 |---------|-----------|----------------|
-| Cloud Infra & DevOps | Vinh, Tín | Docker, Network, Airflow, PostgreSQL |
-| Cloud Storage | Vinh, Tín | MinIO, ETL pipeline, Data upload |
-| Cloud Compute | Hoàng, Triệu | Apache Drill, SQL queries |
-| Cloud BI & Visualization | Hoàng, Triệu | Apache Superset, Charts |
+| Cloud Infra & DevOps | Vinh, Tín | EC2, Docker, Airflow, PostgreSQL |
+| Cloud Storage | Vinh, Tín | Amazon S3, ETL pipeline, boto3 upload |
+| Cloud Compute | Hoàng, Triệu | AWS Glue Catalog, Amazon Athena |
+| Cloud BI & Visualization | Hoàng, Triệu | Apache Superset, Dashboard, Charts |
 
-## Prerequisites
+## Pipeline Flow
 
-- **AWS EC2**: t3.micro (1GB RAM + 4GB Swap), Ubuntu 22.04
-- **Docker** + **Docker Compose** (v2)
-- Security Group mở ports: 8080, 8088, 8047, 9000, 9090
+1. **Airflow DAG** (`twitter_etl`) chạy mỗi 6 giờ hoặc trigger thủ công
+2. **generate_twitter_data** — sinh 20 mock tweets từ nhiều user profiles
+3. **validate_twitter_data** — kiểm tra chất lượng bằng Pydantic (yêu cầu ≥80% valid)
+4. **clean_twitter_data** — flatten nested data, thêm batch metadata
+5. **upload_to_s3** — upload **Parquet** (analytics) + **JSON** (backup) lên Amazon S3 bằng `boto3`
+6. **aggregate_daily_stats** — tổng hợp thống kê ngày
+7. **cleanup_old_data** — xoá dữ liệu cũ hơn 30 ngày
+8. **log_pipeline_metrics** — báo cáo metrics pipeline
 
-## Quick Start
+## Cài đặt và chạy
 
-### 1. Clone & Setup
+### Yêu cầu
+
+- **AWS Account** với quyền S3, Glue, Athena
+- **Amazon EC2** t3.micro (1GB RAM + 4GB Swap), Ubuntu 22.04
+- **Docker** + **Docker Compose** v2
+- Security Group mở ports: `8080` (Airflow), `8088` (Superset)
+
+### Setup EC2
 
 ```bash
-git clone <repo-url> && cd Twitter-Data-Lakehouse
+git clone https://github.com/TIN1589/twitter-data-lakehouse.git
+cd twitter-data-lakehouse
 
-# Setup tự động (cài Docker nếu chưa có, tạo swap, start services)
-chmod +x scripts/init.sh
-./scripts/init.sh
-```
-
-### 2. Manual Setup (nếu không dùng script)
-
-```bash
-# Tạo .env
+# Copy và điền thông tin AWS credentials
 cp sample.env .env
+nano .env
 
-# Tạo thư mục
-mkdir -p app/logs data
-chmod -R 777 app/logs
-
-# Build & start
+# Build và start
 docker compose build
 docker compose up -d
 ```
 
-### 3. Truy cập Services
+### Biến môi trường cần thiết (`.env`)
+
+```bash
+# AWS S3 — Data Lake thực
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=ap-southeast-1
+S3_BUCKET_NAME=twitter-data-lakehouse
+
+# PostgreSQL — Airflow Metadata
+POSTGRES_USER=airflow
+POSTGRES_PASSWORD=airflow
+POSTGRES_DB=airflow
+
+# Superset
+SUPERSET_SECRET_KEY=your_secret_key
+```
+
+### Setup AWS Resources (chỉ cần làm 1 lần)
+
+```python
+import boto3
+
+# 1. Tạo S3 bucket
+s3 = boto3.client('s3', region_name='ap-southeast-1')
+s3.create_bucket(
+    Bucket='twitter-data-lakehouse',
+    CreateBucketConfiguration={'LocationConstraint': 'ap-southeast-1'}
+)
+
+# 2. Tạo Glue database và table (xem scripts/setup_aws.py)
+# 3. Tạo Athena workgroup với S3 output location
+```
+
+## Truy cập Services
 
 | Service | URL | Login |
 |---------|-----|-------|
-| Airflow | http://\<EC2-IP\>:8080 | airflow / airflow |
-| MinIO Console | http://\<EC2-IP\>:9090 | minioadmin / minioadmin |
-| Apache Drill | http://\<EC2-IP\>:8047 | — |
-| Superset | http://\<EC2-IP\>:8088 | admin / admin |
+| **Airflow** | `http://<EC2-IP>:8080` | admin / admin |
+| **Superset** | `http://<EC2-IP>:8088` | admin / admin |
+| **AWS S3** | https://s3.console.aws.amazon.com/s3/buckets/twitter-data-lakehouse | AWS Console |
+| **AWS Athena** | https://ap-southeast-1.console.aws.amazon.com/athena | workgroup: twitter-lakehouse |
 
-## Pipeline Flow
+> ⚠️ **Lưu ý Athena**: Chọn đúng **workgroup `twitter-lakehouse`** và **database `twitter_lakehouse`** trước khi query.
 
-1. **Airflow DAG** (`twitter_etl`) chạy mỗi 6 giờ
-2. **Mock Data Generator** tạo 50 tweets giả lập từ 8 user profiles khác nhau
-3. **Clean & Transform**: flatten nested data, thêm batch metadata
-4. **Upload to MinIO** via `boto3`: **CSV** (readable) + **JSON** (raw backup) + **Parquet** (columnar, fast queries)
-5. **Drill** query trực tiếp Parquet/CSV/JSON trên MinIO qua S3A connector
-6. **Superset** kết nối Drill để tạo charts và dashboards
-
-### Kết nối Superset → Drill
-
-Trong Superset, thêm database connection:
-```
-drill+sadrill://drill:8047/dfs/s3.root?use_ssl=False
-```
-
-### Query mẫu trên Drill
+## Query mẫu trên Amazon Athena
 
 ```sql
 -- Thống kê tweets theo username
-SELECT username,
-       COUNT(*) AS total_tweets,
-       AVG(CAST(like_count AS INT)) AS avg_likes,
-       MAX(CAST(retweet_count AS INT)) AS max_retweets
-FROM s3.root.`tweets/2026/**/*.csv`
+SELECT
+    username,
+    COUNT(*) AS total_tweets,
+    ROUND(AVG(like_count), 0) AS avg_likes,
+    MAX(retweet_count) AS max_retweets
+FROM tweets
 GROUP BY username
-ORDER BY avg_likes DESC;
+ORDER BY total_tweets DESC;
 
 -- Top hashtags
 SELECT hashtags, COUNT(*) AS frequency
-FROM s3.root.`tweets/2026/**/*.csv`
-WHERE hashtags <> ''
+FROM tweets
+WHERE hashtags != ''
 GROUP BY hashtags
 ORDER BY frequency DESC
 LIMIT 10;
+
+-- Tổng engagement
+SELECT
+    username,
+    SUM(like_count + retweet_count) AS total_engagement
+FROM tweets
+GROUP BY username
+ORDER BY total_engagement DESC;
 ```
 
-## CI/CD Pipeline
-
-Dự án sử dụng **GitHub Actions** cho CI/CD tự động:
-
-```
-Push to main → Lint (flake8 + yamllint) → Deploy to EC2 (SSH)
-```
-
-Xem: [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
-
-## Monitoring
-
-Health check script tự động kiểm tra toàn bộ hệ thống:
-
-```bash
-# Chạy thủ công
-bash scripts/health-check.sh
-
-# Cấu hình cron (mỗi 5 phút)
-crontab -e
-*/5 * * * * /home/ubuntu/twitter-data-lakehouse/scripts/health-check.sh >> /var/log/lakehouse-health.log 2>&1
-```
-
-## Resource Optimization (t3.micro)
-
-Đã tối ưu cho 1GB RAM + 4GB Swap:
-
-| Service | Memory Limit | Kỹ thuật tối ưu |
-|---------|-------------|------------------|
-| MinIO | 200 MB | GOGC=20 (aggressive Go GC) |
-| Drill | 384 MB | SerialGC, CompressedOops, MaxMetaspace=128m |
-| Superset | 256 MB | Single gunicorn worker |
-| PostgreSQL | 100 MB | shared_buffers=32MB, work_mem=1MB |
-| Airflow Scheduler | 256 MB | SequentialExecutor, min_file_process_interval=60s |
-| Airflow Webserver | 256 MB | 1 worker, lazy import pyarrow |
-
-> 📖 Chi tiết tối ưu: [docs/architecture.md → Section 5](docs/architecture.md#5-tối-ưu-hóa-cho-môi-trường-low-memory)
-
-## Project Structure
+## Cấu trúc Project
 
 ```
 ├── app/
 │   └── dags/
-│       ├── twitter_etl.py          # Airflow DAG (main pipeline)
-│       └── mock_twitter_data.py    # Mock data generator (8 users)
+│       ├── twitter_etl.py          # Airflow DAG — main pipeline (7 tasks)
+│       ├── mock_twitter_data.py    # Mock data generator
+│       ├── models.py               # Pydantic validation models
+│       ├── data_quality.py         # Data quality checker
+│       └── pipeline_utils.py       # Aggregation & cleanup utilities
 ├── conf/
-│   └── drill/
-│       ├── core-site.xml           # Drill → MinIO S3A config
-│       └── storage-plugins-override.conf
+│   └── airflow/
+│       └── webserver_config.py     # Airflow webserver config (CSRF fix)
 ├── docs/
-│   └── architecture.md             # 📖 Architecture & Lakehouse docs
+│   └── architecture.md             # Chi tiết kiến trúc & Lakehouse concept
 ├── scripts/
 │   ├── init.sh                     # EC2 setup script
-│   └── health-check.sh             # Monitoring health check
+│   └── health-check.sh             # Health monitoring
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml               # GitHub Actions CI/CD
-├── docker-compose.yaml             # All services (cloud-optimized)
-├── airflow.Dockerfile              # Custom Airflow image
-├── superset_drill.Dockerfile       # Superset + Drill connector
+├── docker-compose.yaml             # Services: Airflow, Superset, PostgreSQL
+├── airflow.Dockerfile              # Custom Airflow image (boto3, pydantic, pyarrow)
+├── superset_drill.Dockerfile       # Superset + PyAthena connector
 ├── sample.env                      # Environment template
-├── Makefile                        # Build automation
 └── README.md
 ```
 
+## Tại sao Data Lakehouse?
+
+| | Data Lake | Data Warehouse | **Data Lakehouse (Dự án này)** |
+|---|---|---|---|
+| **Storage** | Cheap (S3) | Expensive | **Amazon S3 (Parquet)** |
+| **SQL** | Hạn chế | Full | **Amazon Athena (Serverless)** |
+| **Schema** | Không có | Rigid | **AWS Glue Catalog (Flexible)** |
+| **Chi phí** | Thấp | Cao | **~$0.03/tháng** |
+| **Scale** | Petabyte | Giới hạn | **Petabyte (AWS native)** |
+
+## CI/CD
+
+```
+Push to main → GitHub Actions → Lint (flake8 + yamllint) → Deploy to EC2 (SSH)
+```
+
+Xem: [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
+
 ## Troubleshooting
 
-### Services không start?
 ```bash
-# Check logs
+# Kiểm tra containers
+docker compose ps
 docker compose logs <service-name>
 
-# Check memory
-free -h
+# Kiểm tra RAM
+free -m
 docker stats --no-stream
+
+# Restart service
+docker compose restart <service-name>
 ```
 
-### Out of Memory?
-```bash
-# Kiểm tra swap
-sudo swapon --show
-
-# Tăng swap nếu cần
-sudo fallocate -l 4G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-```
-
-### Drill không kết nối MinIO?
-- Kiểm tra MinIO đã healthy: `docker compose ps minio`
-- Credentials trong `conf/drill/core-site.xml` phải khớp với `.env`
+| Lỗi | Nguyên nhân | Cách sửa |
+|-----|-------------|----------|
+| Superset trắng màn hình | Session cũ | Mở tab ẩn danh, F5 |
+| Athena "No output location" | Sai workgroup | Đổi sang `twitter-lakehouse` |
+| DAG không trigger | CSRF | Đăng xuất → đăng nhập lại |
 
 ## License
 
