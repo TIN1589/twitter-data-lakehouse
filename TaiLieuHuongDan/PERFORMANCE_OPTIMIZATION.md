@@ -310,5 +310,5 @@ For dashboards, **use pre-computed views** with date filters and LIMIT clauses. 
 ## References
 
 - [Apache Parquet Documentation](https://parquet.apache.org/)
-- [Apache Drill Performance Tuning](https://drill.apache.org/docs/querying/)
+- [Apache Drill Performance Tuning](https://drill.apache.org./querying/)
 - [Snappy Compression](https://github.com/google/snappy)

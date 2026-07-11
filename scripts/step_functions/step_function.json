@@ -1,0 +1,64 @@
+{
+  "Comment": "Twitter Data Lakehouse 100% Serverless ETL Pipeline",
+  "StartAt": "Ingest Twitter Data",
+  "States": {
+    "Ingest Twitter Data": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ingest_lambda_arn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "Process Twitter Data"
+    },
+    "Process Twitter Data": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${process_lambda_arn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "Start Glue Crawler"
+    },
+    "Start Glue Crawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "${glue_crawler_name}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Glue.CrawlerRunningException"
+          ],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 1,
+          "BackoffRate": 1.0
+        }
+      ],
+      "End": true
+    }
+  }
+}

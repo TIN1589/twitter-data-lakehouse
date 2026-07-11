@@ -2,7 +2,7 @@
 
 Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển khai trên **AWS Cloud**.
 
-## Kiến trúc hệ thống
+> 📖 **Tài liệu kiến trúc chi tiết**: Xem [TaiLieuHuongDan/architecture.md](TaiLieuHuongDan/architecture.md) — bao gồm diagrams, so sánh Lakehouse concept, và đề xuất kiến trúc Production trên AWS.
 
 ![AWS Data Lakehouse Architecture](docs/architecture_diagram.png)
 
@@ -18,6 +18,9 @@ Data Lakehouse pipeline phân tích dữ liệu Twitter (mock data), triển kha
 
 ## Phân công vai trò nhóm
 
+> 📖 Chi tiết: [TaiLieuHuongDan/architecture.md → Section 4](TaiLieuHuongDan/architecture.md#4-data-lakehouse--khái-niệm--so-sánh)
+
+**Phân công vai trò:**
 | Vai trò | Thành viên | Phần phụ trách |
 |---------|-----------|----------------|
 | Cloud Infra & DevOps | Vinh, Tín | EC2, Docker, Airflow, PostgreSQL |
@@ -135,7 +138,45 @@ GROUP BY username
 ORDER BY total_engagement DESC;
 ```
 
-## Cấu trúc Project
+## CI/CD Pipeline
+
+Dự án sử dụng **GitHub Actions** cho CI/CD tự động:
+
+```
+Push to main → Lint (flake8 + yamllint) → Deploy to EC2 (SSH)
+```
+
+Xem: [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
+
+## Monitoring
+
+Health check script tự động kiểm tra toàn bộ hệ thống:
+
+```bash
+# Chạy thủ công
+bash scripts/health-check.sh
+
+# Cấu hình cron (mỗi 5 phút)
+crontab -e
+*/5 * * * * /home/ubuntu/twitter-data-lakehouse/scripts/health-check.sh >> /var/log/lakehouse-health.log 2>&1
+```
+
+## Resource Optimization (t3.micro)
+
+Đã tối ưu cho 1GB RAM + 4GB Swap:
+
+| Service | Memory Limit | Kỹ thuật tối ưu |
+|---------|-------------|------------------|
+| MinIO | 200 MB | GOGC=20 (aggressive Go GC) |
+| Drill | 384 MB | SerialGC, CompressedOops, MaxMetaspace=128m |
+| Superset | 256 MB | Single gunicorn worker |
+| PostgreSQL | 100 MB | shared_buffers=32MB, work_mem=1MB |
+| Airflow Scheduler | 256 MB | SequentialExecutor, min_file_process_interval=60s |
+| Airflow Webserver | 256 MB | 1 worker, lazy import pyarrow |
+
+> 📖 Chi tiết tối ưu: [TaiLieuHuongDan/architecture.md → Section 5](TaiLieuHuongDan/architecture.md#5-tối-ưu-hóa-cho-môi-trường-low-memory)
+
+## Project Structure
 
 ```
 ├── app/
@@ -146,10 +187,11 @@ ORDER BY total_engagement DESC;
 │       ├── data_quality.py         # Data quality checker
 │       └── pipeline_utils.py       # Aggregation & cleanup utilities
 ├── conf/
-│   └── airflow/
-│       └── webserver_config.py     # Airflow webserver config (CSRF fix)
-├── docs/
-│   └── architecture.md             # Chi tiết kiến trúc & Lakehouse concept
+│   └── drill/
+│       ├── core-site.xml           # Drill → MinIO S3A config
+│       └── storage-plugins-override.conf
+├── TaiLieuHuongDan/
+│   └── architecture.md             # 📖 Architecture & Lakehouse docs
 ├── scripts/
 │   ├── init.sh                     # EC2 setup script
 │   └── health-check.sh             # Health monitoring
